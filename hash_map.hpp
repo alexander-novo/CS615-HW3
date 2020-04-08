@@ -5,9 +5,10 @@
 #include "kmer_t.hpp"
 
 struct HashMap {
-	upcxx::dist_object<std::vector<upcxx::global_ptr<kmer_pair>>> data;
-	upcxx::global_ptr<unsigned> used;
+	std::vector<upcxx::global_ptr<kmer_pair>> data;
+	std::vector<upcxx::global_ptr<unsigned>> used;
 	upcxx::atomic_domain<unsigned> ad;
+	unsigned sizePerProcess;
 
 	size_t my_size;
 
@@ -33,14 +34,25 @@ struct HashMap {
 
 HashMap::HashMap(size_t size)
     : my_size(size),
-      data(std::vector<upcxx::global_ptr<kmer_pair>>(size)),
+      data(upcxx::rank_n()),
+      used(upcxx::rank_n()),
       ad({upcxx::atomic_op::compare_exchange}) {
-	if (upcxx::rank_me() == 0) {
-		used = upcxx::new_array<unsigned>(size);
-		for (unsigned i = 0; i < size; i++) { used.local()[i] = 0; }
+	// Divide up k-mers among processes.
+	sizePerProcess = upcxx::rank_n() > 1 ? (size - 1) / (upcxx::rank_n() - 1) : size;
+	auto kmer_ptr  = upcxx::new_array<kmer_pair>(sizePerProcess);
+	auto used_ptr  = upcxx::new_array<unsigned>(sizePerProcess);
+
+	upcxx::future<> fut_all = upcxx::make_future();
+	for (unsigned i = 0; i < upcxx::rank_n(); i++) {
+		fut_all = upcxx::when_all(
+		    fut_all,
+		    (upcxx::future<>) upcxx::broadcast(kmer_ptr, i)
+		        .then([this, i](const upcxx::global_ptr<kmer_pair> &val) { data[i] = val; }),
+		    (upcxx::future<>) upcxx::broadcast(used_ptr, i)
+		        .then([this, i](const upcxx::global_ptr<unsigned> &val) { used[i] = val; }));
 	}
 
-	used = upcxx::broadcast(used, 0).wait();
+	fut_all.wait();
 }
 
 bool HashMap::insert(const kmer_pair &kmer) {
@@ -64,34 +76,30 @@ bool HashMap::find(const pkmer_t &key_kmer, kmer_pair &val_kmer) {
 		if (slot_used(slot)) {
 			val_kmer = read_slot(slot);
 			if (val_kmer.kmer == key_kmer) { success = true; }
+			// Performance-saving measure
+		} else {
+			break;
 		}
 	} while (!success && probe < size());
 	return success;
 }
 
 bool HashMap::slot_used(uint64_t slot) {
-	return upcxx::rget(used + slot).wait();
+	return upcxx::rget(used[slot / sizePerProcess] + (slot % sizePerProcess)).wait();
 }
 
 void HashMap::write_slot(uint64_t slot, const kmer_pair &kmer) {
-	(*data)[slot] = upcxx::new_<kmer_pair>(kmer);
-	for (unsigned i = 0; i < upcxx::rank_n(); i++) {
-		if (i == upcxx::rank_me()) continue;
-
-		upcxx::rpc(
-		    i,
-		    [](upcxx::dist_object<std::vector<upcxx::global_ptr<kmer_pair>>> &local_data,
-		       uint64_t slot, upcxx::global_ptr<kmer_pair> ptr) { (*local_data)[slot] = ptr; },
-		    data, slot, (*data)[slot]);
-	}
+	upcxx::rput(kmer, data[slot / sizePerProcess] + (slot % sizePerProcess));
 }
 
 kmer_pair HashMap::read_slot(uint64_t slot) {
-	return upcxx::rget((*data)[slot]).wait();
+	return upcxx::rget(data[slot / sizePerProcess] + (slot % sizePerProcess)).wait();
 }
 
 bool HashMap::request_slot(uint64_t slot) {
-	return ad.compare_exchange(used + slot, 0, 1, std::memory_order_relaxed).wait() == 0;
+	return ad.compare_exchange(used[slot / sizePerProcess] + (slot % sizePerProcess), 0, 1,
+	                           std::memory_order_relaxed)
+	           .wait() == 0;
 }
 
 size_t HashMap::size() const noexcept {
