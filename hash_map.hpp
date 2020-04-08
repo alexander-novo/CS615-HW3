@@ -88,7 +88,7 @@ bool HashMap::find(const pkmer_t &key_kmer, kmer_pair &val_kmer) {
 			val_kmer = read_slot(slot);
 			if (val_kmer.kmer == key_kmer) { success = true; }
 		}
-	} while (!success && probe < size() && !fullSlot);
+	} while (!success && probe < size() && fullSlot);
 	return success;
 }
 
