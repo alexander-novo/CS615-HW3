@@ -46,7 +46,7 @@ HashMap::HashMap(size_t size)
       used(upcxx::rank_n()),
       ad({upcxx::atomic_op::compare_exchange}) {
 	// Divide up k-mers among processes.
-	sizePerProcess = upcxx::rank_n() > 1 ? (size - 1) / (upcxx::rank_n() - 1) : size;
+	sizePerProcess = upcxx::rank_n() > 1 ? (size + upcxx::rank_n() - 1) / upcxx::rank_n() : size;
 	auto kmer_ptr  = upcxx::new_array<kmer_pair>(sizePerProcess);
 	auto used_ptr  = upcxx::new_array<unsigned>(sizePerProcess);
 

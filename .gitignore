@@ -1,5 +1,8 @@
 data/
 
 kmer_hash
-test_*.dat
+kmer_hash_19
+kmer_hash_51
+
+*.dat
 my_solution.txt

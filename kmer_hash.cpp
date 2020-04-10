@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 	upcxx::barrier();
 
 	double insert_time = std::chrono::duration<double>(end_insert - start).count();
-	if (run_type != "test") { BUtil::print("Finished inserting in %lf\n", insert_time); }
+	if (run_type == "") { BUtil::print("Finished inserting in %lf\n", insert_time); }
 	upcxx::barrier();
 
 	auto start_read = std::chrono::high_resolution_clock::now();
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 	    contigs.begin(), contigs.end(), 0,
 	    [](int sum, const std::list<kmer_pair> &contig) { return sum + contig.size(); });
 
-	if (run_type != "test") { BUtil::print("Assembled in %lf total\n", total.count()); }
+	if (run_type == "") { BUtil::print("Assembled in %lf total\n", total.count()); }
 
 	if (run_type == "verbose") {
 		printf(
@@ -109,6 +109,11 @@ int main(int argc, char **argv) {
 		std::ofstream fout("test_" + std::to_string(upcxx::rank_me()) + ".dat");
 		for (const auto &contig : contigs) { fout << extract_contig(contig) << std::endl; }
 		fout.close();
+	}
+
+	if (run_type == "data") {
+		BUtil::print("%d %d %lf %lf\n", upcxx::rank_n(), PACKED_KMER_LEN * n_kmers, insert_time,
+		             total.count());
 	}
 
 	upcxx::finalize();
