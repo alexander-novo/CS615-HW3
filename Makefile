@@ -139,13 +139,13 @@ bridges_kmer_strong_multi_tiny: kmer_hash_19
 
 bridges_kmer_strong_multi_verysmall: kmer_hash_19 
 	upcxx-run -N 1 -n 32 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/verysmall.txt data > ./output/multi/kmer_strong_multi_verysmall.dat
-	upcxx-run -N 2 -n 64-shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/verysmall.txt data >> ./output/multi/kmer_strong_multi_verysmall.dat
+	upcxx-run -N 2 -n 64 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/verysmall.txt data >> ./output/multi/kmer_strong_multi_verysmall.dat
 	upcxx-run -N 4 -n 128 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/verysmall.txt data >> ./output/multi/kmer_strong_multi_verysmall.dat
 	upcxx-run -N 8 -n 255 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/verysmall.txt data >> ./output/multi/kmer_strong_multi_verysmall.dat
 
 bridges_kmer_strong_multi_little: kmer_hash_19 
 	upcxx-run -N 1 -n 32 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/little.txt data > ./output/multi/kmer_strong_multi_little.dat
-	upcxx-run -N 2 -n 64-shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/little.txt data >> ./output/multi/kmer_strong_multi_little.dat
+	upcxx-run -N 2 -n 64 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/little.txt data >> ./output/multi/kmer_strong_multi_little.dat
 	upcxx-run -N 4 -n 128 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/little.txt data >> ./output/multi/kmer_strong_multi_little.dat
 	upcxx-run -N 8 -n 255 -shared-heap 50% ./kmer_hash_19 /pylon5/sc5fp4p/bbrock/hw3-datasets/smaller/little.txt data >> ./output/multi/kmer_strong_multi_little.dat
 
